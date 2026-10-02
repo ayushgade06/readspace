@@ -1,0 +1,15 @@
+# Prometheus configuration for Docker Compose.
+#
+# Prometheus "scrapes" (sends an HTTP GET to) each target's /metrics
+# endpoint every scrape_interval and stores the values it gets back.
+
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: readspace
+    metrics_path: /metrics
+    static_configs:
+      # "app" is the name of the application service in docker-compose.yml,
+      # 4000 is the port the application listens on.
+      - targets: ["app:4000"]

@@ -1,8 +1,8 @@
-# ReadSpace on Docker Compose: database and application.
+# ReadSpace on Docker Compose: database, application, Prometheus.
 # Values come from the .env file (copy .env.example to .env first).
 #
 #   docker compose up -d db        only the database (for local development)
-#   docker compose up -d --build   database and application
+#   docker compose up -d --build   the complete stack
 
 services:
   db:
@@ -38,6 +38,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    depends_on:
+      - app
 
 volumes:
   db-data:

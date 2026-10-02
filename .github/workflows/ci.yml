@@ -96,6 +96,15 @@ jobs:
       - name: List image
         run: docker images readspace
 
+      - name: Validate Prometheus configuration
+        run: |
+          for file in prometheus.yml; do
+            docker run --rm \
+              -v "$PWD/monitoring/prometheus:/config:ro" \
+              --entrypoint promtool prom/prometheus:v3.5.0 \
+              check config "/config/$file"
+          done
+
       - name: Start the application and database containers
         run: |
           cp .env.example .env
