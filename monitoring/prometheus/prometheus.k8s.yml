@@ -1,0 +1,19 @@
+# Prometheus configuration for Kubernetes.
+#
+# Same idea as prometheus.yml, but the targets are not written by hand.
+# The "readspace-pods" Service is headless, so its DNS name returns the IP
+# address of every ReadSpace pod. Prometheus looks the name up and scrapes
+# each pod separately. When the Deployment is scaled, the new pod shows up
+# as a new target on its own.
+
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: readspace
+    metrics_path: /metrics
+    dns_sd_configs:
+      - names: ["readspace-pods.default.svc.cluster.local"]
+        type: A
+        port: 4000
+        refresh_interval: 10s

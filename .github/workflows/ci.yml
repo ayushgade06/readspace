@@ -98,7 +98,7 @@ jobs:
 
       - name: Validate Prometheus configuration
         run: |
-          for file in prometheus.yml; do
+          for file in prometheus.yml prometheus.k8s.yml; do
             docker run --rm \
               -v "$PWD/monitoring/prometheus:/config:ro" \
               --entrypoint promtool prom/prometheus:v3.5.0 \
