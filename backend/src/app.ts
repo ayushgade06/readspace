@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import express, { NextFunction, Request, Response } from "express";
 import { pool } from "./db";
+import { httpMetrics, metricsHandler, occupyActions, releaseActions } from "./metrics";
 import { ApiError, SeatAction, changeSeat, getStats, listActivity, listSeats } from "./seats";
 
 const frontendDir = path.resolve(__dirname, "../../frontend/dist");
@@ -29,6 +30,9 @@ function isDatabaseDown(err: unknown): boolean {
 export function createApp() {
   const app = express();
   app.use(express.json());
+  // Seat data changes all the time, so always send a full 200 response
+  // instead of "304 Not Modified".
+  app.set("etag", false);
 
   // One log line per request. Successful health checks are skipped because
   // Kubernetes calls /health every few seconds.
@@ -44,6 +48,11 @@ export function createApp() {
     });
     next();
   });
+
+  app.use(httpMetrics);
+
+  // Scraped by Prometheus.
+  app.get("/metrics", metricsHandler);
 
   // Used by the Kubernetes readiness probe: the pod only receives traffic
   // while it can reach the database.
@@ -72,6 +81,7 @@ export function createApp() {
   const seatAction = (action: SeatAction) => async (req: Request, res: Response) => {
     const id = parseSeatId(String(req.params.id));
     const seat = await changeSeat(id, action);
+    (action === "occupy" ? occupyActions : releaseActions).inc();
     res.json({ message: `Seat ${seat.seatNumber} is now ${seat.status}.`, seat });
   };
 

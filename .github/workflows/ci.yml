@@ -114,6 +114,7 @@ jobs:
           echo
           echo "--- occupy seat";  curl -fsS -X POST http://localhost:4000/api/seats/1/occupy
           echo
+          echo "--- /metrics";     curl -fsS http://localhost:4000/metrics | grep reading_hall_seats_occupied
           echo "--- web page";     curl -fsS http://localhost:4000/ | grep -o "<title>.*</title>"
 
       - name: Show container logs
