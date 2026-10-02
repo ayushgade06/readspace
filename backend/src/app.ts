@@ -1,6 +1,10 @@
+import fs from "fs";
+import path from "path";
 import express, { NextFunction, Request, Response } from "express";
 import { pool } from "./db";
 import { ApiError, SeatAction, changeSeat, getStats, listActivity, listSeats } from "./seats";
+
+const frontendDir = path.resolve(__dirname, "../../frontend/dist");
 
 // Seat ids come from the URL, so they are validated before reaching the database.
 function parseSeatId(value: string): number {
@@ -77,6 +81,12 @@ export function createApp() {
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Endpoint not found." });
   });
+
+  // The built React frontend. It exists in the Docker image (and after
+  // "npm run build" in frontend/); in development Vite serves it instead.
+  if (fs.existsSync(frontendDir)) {
+    app.use(express.static(frontendDir));
+  }
 
   // Central error handler: every error becomes a JSON response.
   app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {

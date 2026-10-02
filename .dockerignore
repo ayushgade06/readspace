@@ -1,0 +1,10 @@
+.git
+.github
+.env
+.env.*
+**/node_modules
+**/dist
+k8s
+monitoring
+scripts
+*.md

@@ -1,0 +1,43 @@
+# ReadSpace on Docker Compose: database and application.
+# Values come from the .env file (copy .env.example to .env first).
+#
+#   docker compose up -d db        only the database (for local development)
+#   docker compose up -d --build   database and application
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    image: readspace:1.0
+    environment:
+      PORT: "4000"
+      # Inside the Compose network the database is reached by its
+      # service name and its container port, not the host port.
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${APP_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
