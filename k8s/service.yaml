@@ -1,0 +1,35 @@
+# Services for the ReadSpace application.
+#
+# Port chain for the browser:
+#   localhost:30080 (nodePort) -> Service port 80 -> targetPort 4000 (containerPort)
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: readspace
+spec:
+  type: NodePort
+  selector:
+    app: readspace
+  ports:
+    - port: 80          # port of the Service inside the cluster
+      targetPort: 4000  # port the container listens on
+      nodePort: 30080   # port opened on the node: http://localhost:30080
+---
+# Headless Service (clusterIP: None). It does no load balancing; its DNS
+# name simply lists the IP of every ReadSpace pod. Prometheus uses it to
+# find and scrape each pod separately.
+apiVersion: v1
+kind: Service
+metadata:
+  name: readspace-pods
+spec:
+  clusterIP: None
+  # Keep listing a pod even while it is not Ready, so that Prometheus
+  # shows a broken pod as a DOWN target instead of losing sight of it.
+  publishNotReadyAddresses: true
+  selector:
+    app: readspace
+  ports:
+    - port: 4000
+      targetPort: 4000
