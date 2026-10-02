@@ -98,6 +98,17 @@ describe("POST /api/seats/:id/release", () => {
   });
 });
 
+describe("GET /metrics", () => {
+  it("exposes the reading hall metrics in Prometheus format", async () => {
+    await request(app).post("/api/seats/3/occupy");
+    const res = await request(app).get("/metrics");
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("reading_hall_seats_occupied 1");
+    expect(res.text).toContain("reading_hall_seats_total");
+    expect(res.text).toContain('http_requests_total{method="POST",route="/api/seats/:id/occupy",status="200"}');
+  });
+});
+
 describe("invalid seat ids", () => {
   it("returns 404 for a seat that does not exist", async () => {
     const res = await request(app).post("/api/seats/9999/occupy");

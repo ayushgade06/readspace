@@ -1,0 +1,16 @@
+# Grafana reads this file at startup and creates the data source,
+# so nothing has to be configured by hand in the Grafana UI.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    # "prometheus" is the service name in both Docker Compose and Kubernetes.
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 5s
