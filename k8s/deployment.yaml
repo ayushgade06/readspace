@@ -1,0 +1,52 @@
+# ReadSpace application (Express API + built React frontend).
+#
+# The image is built locally with:  docker build -t readspace:1.0 .
+# Docker Desktop Kubernetes uses the same image store as Docker, so the
+# image does not need to be pushed to a registry.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readspace
+  labels:
+    app: readspace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: readspace
+  template:
+    metadata:
+      labels:
+        app: readspace
+    spec:
+      containers:
+        - name: readspace
+          image: readspace:1.0
+          # Use the locally built image instead of pulling from a registry.
+          imagePullPolicy: IfNotPresent
+          ports:
+            # Must match PORT below.
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: readspace
+            - name: DB_USER
+              value: readspace
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: readspace-db
+                  key: DB_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
