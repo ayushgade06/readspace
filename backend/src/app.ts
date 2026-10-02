@@ -1,11 +1,96 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
+import { pool } from "./db";
+import { ApiError, SeatAction, changeSeat, getStats, listActivity, listSeats } from "./seats";
+
+// Seat ids come from the URL, so they are validated before reaching the database.
+function parseSeatId(value: string): number {
+  if (!/^\d{1,9}$/.test(value) || Number(value) < 1) {
+    throw new ApiError(400, "Seat id must be a positive number.");
+  }
+  return Number(value);
+}
+
+// Errors raised by the pg driver when the database cannot be reached.
+function isDatabaseDown(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  const code = e.code ?? "";
+  return (
+    ["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "EAI_AGAIN", "ECONNRESET"].includes(code) ||
+    code.startsWith("08") ||
+    code.startsWith("57P") ||
+    /timeout|terminated/i.test(e.message ?? "")
+  );
+}
 
 export function createApp() {
   const app = express();
   app.use(express.json());
 
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok" });
+  // One log line per request. Successful health checks are skipped because
+  // Kubernetes calls /health every few seconds.
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      const quiet = req.path === "/health" || req.path === "/metrics";
+      if (quiet && res.statusCode < 400) return;
+      console.log(
+        `${new Date().toISOString()} ${req.method} ${req.originalUrl} ` +
+          `${res.statusCode} ${Date.now() - start}ms`
+      );
+    });
+    next();
+  });
+
+  // Used by the Kubernetes readiness probe: the pod only receives traffic
+  // while it can reach the database.
+  app.get("/health", async (_req, res) => {
+    try {
+      await pool.query("SELECT 1");
+      res.json({ status: "ok", database: "up" });
+    } catch (err) {
+      console.error(`Health check failed: ${(err as Error).message}`);
+      res.status(503).json({ status: "error", database: "down" });
+    }
+  });
+
+  app.get("/api/seats", async (_req, res) => {
+    res.json(await listSeats());
+  });
+
+  app.get("/api/stats", async (_req, res) => {
+    res.json(await getStats());
+  });
+
+  app.get("/api/activity", async (_req, res) => {
+    res.json(await listActivity(20));
+  });
+
+  const seatAction = (action: SeatAction) => async (req: Request, res: Response) => {
+    const id = parseSeatId(String(req.params.id));
+    const seat = await changeSeat(id, action);
+    res.json({ message: `Seat ${seat.seatNumber} is now ${seat.status}.`, seat });
+  };
+
+  app.post("/api/seats/:id/occupy", seatAction("occupy"));
+  app.post("/api/seats/:id/release", seatAction("release"));
+
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Endpoint not found." });
+  });
+
+  // Central error handler: every error becomes a JSON response.
+  app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+    if (err instanceof ApiError) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
+    if (isDatabaseDown(err)) {
+      console.error(`Database unavailable on ${req.method} ${req.originalUrl}: ${(err as Error).message}`);
+      res.status(503).json({ error: "Database unavailable." });
+      return;
+    }
+    console.error(`Unexpected error on ${req.method} ${req.originalUrl}:`, err);
+    res.status(500).json({ error: "Unexpected server error." });
   });
 
   return app;
