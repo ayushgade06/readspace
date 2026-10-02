@@ -6,12 +6,12 @@ Roles:
 
 | Student | Primary tool | Also presents |
 |---------|--------------|---------------|
-| Student 1 | Git | Prometheus |
-| Student 2 | GitHub Actions | Grafana |
-| Student 3 | Docker | Integration walkthrough |
-| Student 4 | Kubernetes | Troubleshooting lead |
+| Kartik | Git | Prometheus (with Trushna) |
+| Trushna | GitHub Actions | Prometheus (with Kartik) |
+| Ayush | Docker | Integration walkthrough, Grafana (with Aarya) |
+| Aarya | Kubernetes | Troubleshooting lead, Grafana (with Ayush) |
 
-Everyone must be able to explain the whole pipeline, not only their own tool. See [VIVA_NOTES.md](VIVA_NOTES.md).
+Everyone must be able to explain the whole pipeline, not only their own tool. See [VIVA_NOTES.md](VIVA_NOTES.md) and the personal study notes in [docs/](docs/README.md).
 
 ## Before the demo (do this 15 minutes earlier)
 
@@ -46,7 +46,7 @@ Everyone must be able to explain the whole pipeline, not only their own tool. Se
 
 Each student: name, tool, role (one sentence each).
 
-Student 1 then shows the ReadSpace tab and says:
+Kartik then shows the ReadSpace tab and says:
 
 > ReadSpace shows the seats of the PICT reading hall. Green outlined seats are free, filled seats are in use. Clicking a seat occupies or releases it. The application is small on purpose: the project is about the pipeline from Git to Grafana.
 
@@ -54,7 +54,7 @@ Click one free seat. Point at: the seat changes, the counts change, a line is ad
 
 ## 1:00-5:00 Tool demonstrations
 
-### Student 1 — Git (about 70 seconds)
+### Kartik — Git (about 70 seconds)
 
 ```
 git log --oneline --graph -12
@@ -75,11 +75,11 @@ git push -u origin demo/readme-note
 
 Say: `switch -c` creates a branch, `add` stages the change, `commit` records it locally, `push` sends it to GitHub. Changes reach `main` through a pull request, and `git pull` brings merged work back to each laptop.
 
-Expected result: the branch appears on GitHub, and the push starts a pipeline run (Student 2 picks this up).
+Expected result: the branch appears on GitHub, and the push starts a pipeline run (Trushna picks this up).
 
-### Student 2 — GitHub Actions (about 70 seconds)
+### Trushna — GitHub Actions (about 70 seconds)
 
-Open the Actions tab. Point at: the run that Student 1's push just started.
+Open the Actions tab. Point at: the run that Kartik's push just started.
 
 Open the latest finished run. Point at the three jobs: **Test**, **Build**, **Docker build and validation**.
 
@@ -93,7 +93,7 @@ Open the "Validate the running container" step. Point at the `/health` and `/api
 
 Expected result: green ticks on all three jobs.
 
-### Student 3 — Docker (about 80 seconds)
+### Ayush — Docker (about 80 seconds)
 
 Open `Dockerfile`. Point at `FROM`, `COPY`, `RUN`, `EXPOSE 4000`, `CMD`. Say: three stages; the last one contains only what is needed to run.
 
@@ -112,7 +112,7 @@ Open http://localhost:4001. Say: host port 4001 is mapped to container port 4000
 docker rm -f readspace-demo
 ```
 
-### Student 4 — Kubernetes (about 80 seconds)
+### Aarya — Kubernetes (about 80 seconds)
 
 ```
 kubectl get deployments
@@ -140,19 +140,28 @@ kubectl logs deployment/readspace --tail=5
 
 Point at in the describe output: `Readiness: http-get http://:4000/health`, `Liveness: tcp-socket :4000`, and the Events at the bottom.
 
-## 5:00-7:00 End-to-end integration (Student 3 leads, Students 1 and 2 show monitoring)
+## 5:00-7:00 End-to-end integration (Ayush leads; Kartik and Trushna show Prometheus; Ayush and Aarya show Grafana)
 
-Student 3, one sentence per step while pointing at the matching tab:
+Ayush, one sentence per step while pointing at the matching tab:
 
 > The code is in Git. A push starts GitHub Actions, which tests and builds it and produces the Docker image. Kubernetes runs that image as two pods. Each pod exposes /metrics. Prometheus scrapes it, and Grafana draws the dashboard from Prometheus.
 
-Student 1 — Prometheus:
+Kartik — Prometheus architecture and targets:
 
 1. Open http://localhost:30080/metrics. Point at `reading_hall_seats_occupied`.
 2. Open the targets tab. Point at: job `readspace`, one target per pod, state **UP**.
-3. On the query tab run `reading_hall_seats_occupied`, then `rate(http_requests_total[1m])`.
 
-Student 2 — Grafana, with the dashboard visible:
+Trushna — Prometheus configuration and queries:
+
+1. Open `monitoring/prometheus/prometheus.k8s.yml`. Point at `scrape_interval`, `metrics_path` and the `dns_sd_configs` name.
+2. On the query tab run `reading_hall_seats_occupied`, then `rate(http_requests_total[1m])`.
+
+Ayush — Grafana dashboard (signed in as admin):
+
+1. Open the dashboard. Say: Grafana stores no data; its data source is Prometheus.
+2. On "HTTP Requests Over Time" open the panel menu > Edit and point at the query. Go back.
+
+Aarya — Grafana anomaly, with the dashboard visible:
 
 ```
 node scripts/simulate.mjs rush
@@ -172,7 +181,7 @@ Point at: the `HTTP 404` and `HTTP 409` lines appearing in HTTP Requests Over Ti
 node scripts/simulate.mjs clear
 ```
 
-## 7:00-9:00 Troubleshooting (Student 4 leads)
+## 7:00-9:00 Troubleshooting (Aarya leads)
 
 The faculty chooses the failure. The method is the same every time: look at the status, read the logs, read the events, compare with the configuration, fix, verify.
 
