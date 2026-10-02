@@ -26,7 +26,7 @@ spec:
           # Use the locally built image instead of pulling from a registry.
           imagePullPolicy: IfNotPresent
           ports:
-            # Must match PORT below.
+            # Must match PORT below and targetPort in service.yaml.
             - containerPort: 4000
           env:
             - name: PORT
@@ -44,6 +44,22 @@ spec:
                 secretKeyRef:
                   name: readspace-db
                   key: DB_PASSWORD
+          # Readiness: /health answers 200 only when the application can
+          # reach the database. A pod that is not ready gets no traffic.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+          # Liveness: is the process still listening on its port?
+          # If not, Kubernetes restarts the container.
+          livenessProbe:
+            tcpSocket:
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
           resources:
             requests:
               cpu: 50m
