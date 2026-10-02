@@ -1,0 +1,125 @@
+name: CI
+
+# Runs on every push to any branch and on pull requests into main.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---- Stage 1: install dependencies and run the API tests ----
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    # The tests need a real PostgreSQL database. GitHub starts this
+    # container next to the job and removes it afterwards, so the
+    # password below is a throwaway value used only inside this run.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: readspace
+          POSTGRES_USER: readspace
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U readspace -d readspace"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: readspace
+      DB_USER: readspace
+      DB_PASSWORD: ci-only-password
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run API tests
+        working-directory: backend
+        run: npm test
+
+  # ---- Stage 2: compile the backend and build the frontend ----
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build backend
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+  # ---- Stage 3: build the Docker image and check that it really runs ----
+  docker:
+    name: Docker build and validation
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t readspace:1.0 .
+
+      - name: List image
+        run: docker images readspace
+
+      - name: Start the application and database containers
+        run: |
+          cp .env.example .env
+          docker compose up -d db app
+
+      - name: Validate the running container
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fs http://localhost:4000/health; then break; fi
+            sleep 2
+          done
+          echo
+          echo "--- /health";      curl -fsS http://localhost:4000/health
+          echo
+          echo "--- /api/stats";   curl -fsS http://localhost:4000/api/stats
+          echo
+          echo "--- occupy seat";  curl -fsS -X POST http://localhost:4000/api/seats/1/occupy
+          echo
+          echo "--- web page";     curl -fsS http://localhost:4000/ | grep -o "<title>.*</title>"
+
+      - name: Show container logs
+        if: always()
+        run: docker compose logs app
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
