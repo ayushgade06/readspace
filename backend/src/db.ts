@@ -8,6 +8,10 @@ export const pool = new Pool({
   connectionTimeoutMillis: 3000,
 });
 
+// Named constants for the database startup retry logic.
+const DEFAULT_RETRY_ATTEMPTS = 10;
+const DEFAULT_RETRY_DELAY_MS = 3000;
+
 // Without this handler an idle connection dropped by the database
 // would crash the process.
 pool.on("error", (err) => {
@@ -40,7 +44,10 @@ export async function initDatabase(): Promise<void> {
 
 // The database container may start a few seconds after the application,
 // so the first connection is retried before giving up.
-export async function initDatabaseWithRetry(attempts = 10, delayMs = 3000): Promise<void> {
+export async function initDatabaseWithRetry(
+  attempts = DEFAULT_RETRY_ATTEMPTS,
+  delayMs = DEFAULT_RETRY_DELAY_MS
+): Promise<void> {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       await initDatabase();
