@@ -7,7 +7,8 @@ import { ApiError, SeatAction, changeSeat, getStats, listActivity, listSeats } f
 
 const frontendDir = path.resolve(__dirname, "../../frontend/dist");
 
-// Seat ids come from the URL, so they are validated before reaching the database.
+// Seat IDs arrive via URL parameters and are validated here before
+// being forwarded to the database layer.
 function parseSeatId(value: string): number {
   if (!/^\d{1,9}$/.test(value) || Number(value) < 1) {
     throw new ApiError(400, "Seat id must be a positive number.");
@@ -15,7 +16,8 @@ function parseSeatId(value: string): number {
   return Number(value);
 }
 
-// Errors raised by the pg driver when the database cannot be reached.
+// Detects well-known pg-driver error codes that indicate the database
+// is unreachable, so the API can return a 503 instead of a generic 500.
 function isDatabaseDown(err: unknown): boolean {
   const e = err as { code?: string; message?: string };
   const code = e.code ?? "";
@@ -34,8 +36,8 @@ export function createApp() {
   // instead of "304 Not Modified".
   app.set("etag", false);
 
-  // One log line per request. Successful health checks are skipped because
-  // Kubernetes calls /health every few seconds.
+    // Emit one log line per completed request. Suppress successful /health
+    // and /metrics calls to avoid noise from Kubernetes probes and Prometheus.
   app.use((req, res, next) => {
     const start = Date.now();
     res.on("finish", () => {

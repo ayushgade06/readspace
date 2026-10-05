@@ -5,8 +5,8 @@ import { ActivityList } from './components/ActivityList'
 import { FloorPlan } from './components/FloorPlan'
 import { SummaryBar } from './components/SummaryBar'
 
-// Other people use the hall at the same time, so the page re-reads the
-// data from the API at this interval.
+// The reading hall is shared, so seat state can change at any time.
+// Poll the API at this interval to keep the UI in sync with the database.
 const REFRESH_INTERVAL_MS = 5000
 
 interface Notice {
