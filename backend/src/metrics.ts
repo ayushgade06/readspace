@@ -4,10 +4,10 @@ import { getStats } from "./seats";
 
 export const register = new client.Registry();
 
-// --- Reading hall metrics -------------------------------------------------
+// --- Reading hall seat gauges --------------------------------------------
 
-// Gauges: values that go up and down. They are read from the database
-// every time Prometheus scrapes /metrics.
+// Gauges track values that can go up and down. Each gauge is refreshed
+// from the database on every Prometheus scrape of /metrics.
 const seatsTotal = new client.Gauge({
   name: "reading_hall_seats_total",
   help: "Total number of seats in the reading hall",
@@ -29,7 +29,9 @@ const occupancyRatio = new client.Gauge({
   registers: [register],
 });
 
-// Counters: values that only go up. Prometheus turns them into rates.
+// --- Reading hall seat counters -------------------------------------------
+
+// Counters only increment. Prometheus derives rates and totals from them.
 export const occupyActions = new client.Counter({
   name: "reading_hall_occupy_actions_total",
   help: "Number of successful occupy actions",
@@ -57,8 +59,8 @@ const httpDuration = new client.Histogram({
   registers: [register],
 });
 
-// Counts and times every API request. /health and /metrics are left out so
-// that probe and scrape traffic does not hide what users are doing.
+// Instruments and times every /api/* request. /health and /metrics are
+// excluded so that probe and scrape traffic does not skew user-facing data.
 export function httpMetrics(req: Request, res: Response, next: NextFunction) {
   if (!req.path.startsWith("/api")) {
     next();
