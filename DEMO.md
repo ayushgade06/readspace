@@ -256,8 +256,4 @@ Questions to be ready for (answers in [VIVA_NOTES.md](VIVA_NOTES.md)):
 ## After the demo
 
 ```
-git switch main
-git branch -D demo/readme-note
-git push origin --delete demo/readme-note
-node scripts/simulate.mjs clear
-```
+
