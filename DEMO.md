@@ -222,7 +222,7 @@ Each scenario below has a command to cause it (for practice), what to run, what 
 - See: after about 15 seconds `kubectl get pods` shows `0/1` for the readspace pods. `kubectl describe pod -l app=readspace` shows `Readiness probe failed: HTTP probe failed with statuscode: 503`. The page shows "Backend unavailable".
 - Fix: `kubectl scale deployment postgres --replicas=1`
 
-**Pods are Ready but the page does not open**
+
 
 - Cause it: change `targetPort: 4000` to `targetPort: 3000` in `k8s/service.yaml` (first Service), then `kubectl apply -f k8s/service.yaml`
 - See: `kubectl get pods` is fine. `kubectl get endpoints readspace` lists port 3000, but the container listens on 4000 (`kubectl describe pod`, `kubectl logs`).
@@ -256,8 +256,7 @@ Questions to be ready for (answers in [VIVA_NOTES.md](VIVA_NOTES.md)):
 ## After the demo
 
 ```
-git switch main
-git branch -D demo/readme-note
-git push origin --delete demo/readme-note
-node scripts/simulate.mjs clear
-```
+
+
+
+testing
