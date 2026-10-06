@@ -348,4 +348,4 @@ Each of these can be produced on purpose for practice; the steps are in [DEMO.md
 
 ## Demo
 
-The 8-10 minute demo script is in [DEMO.md](DEMO.md). Short explanations of each tool are in [VIVA_NOTES.md](VIVA_NOTES.md).
+The 8-10 minute demo script is in [DEMO.md](DEMO.md). Short explanations of each tool are [VIVA_NOTES.md](VIVA_NOTES.md).
