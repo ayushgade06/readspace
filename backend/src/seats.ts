@@ -3,7 +3,8 @@ import { pool } from "./db";
 export type SeatStatus = "available" | "occupied";
 export type SeatAction = "occupy" | "release";
 
-// An error that carries the HTTP status code the API should answer with.
+// ApiError wraps a plain Error with an HTTP status code so the
+// central error handler can respond with the right status.
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -46,9 +47,10 @@ export async function listActivity(limit: number) {
   return result.rows;
 }
 
-// Occupies or releases a seat and records the action.
-// The UPDATE only matches when the seat is in the opposite state, so two
-// requests for the same seat cannot both succeed, even across replicas.
+// Occupies or releases a seat and logs the action in the activity table.
+// The UPDATE only succeeds when the seat is in the opposite state, so two
+// concurrent requests for the same seat cannot both succeed — even across
+// multiple replicas.
 export async function changeSeat(id: number, action: SeatAction) {
   const from: SeatStatus = action === "occupy" ? "available" : "occupied";
   const to: SeatStatus = action === "occupy" ? "occupied" : "available";

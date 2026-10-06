@@ -1,9 +1,9 @@
 import path from "path";
 import dotenv from "dotenv";
 
-// For local development the settings come from the .env file in the
-// repository root. In Docker and Kubernetes there is no .env file and the
-// values are passed as real environment variables instead.
+// In local development, settings are loaded from the .env file at the
+// repository root. When running inside Docker or Kubernetes, no .env file
+// is present and all values are injected as real environment variables.
 dotenv.config({ path: path.resolve(__dirname, "../../.env"), quiet: true });
 
 function required(name: string): string {

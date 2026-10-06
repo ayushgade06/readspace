@@ -8,6 +8,13 @@ export function SummaryBar({ stats }: Props) {
   const value = (n: number | undefined) => (n === undefined ? '–' : n)
   const percentage = stats ? Math.round(stats.occupancyPercentage) : 0
 
+  /** Returns a CSS colour token based on how full the hall is. */
+  function getOccupancyColor(pct: number): string {
+    if (pct >= 80) return 'var(--color-occupied)'   // red-ish — nearly full
+    if (pct >= 50) return 'var(--color-warning, #f59e0b)' // amber — moderate
+    return 'var(--color-available)'                  // green — plenty of space
+  }
+
   return (
     <section className="summary" aria-label="Live Occupancy">
       <div className="summary-item">
@@ -33,7 +40,7 @@ export function SummaryBar({ stats }: Props) {
           aria-valuemax={100}
           aria-valuenow={percentage}
         >
-          <div className="occupancy-bar-fill" style={{ width: `${percentage}%` }} />
+          <div className="occupancy-bar-fill" style={{ width: `${percentage}%`, backgroundColor: getOccupancyColor(percentage) }} />
         </div>
       </div>
     </section>
